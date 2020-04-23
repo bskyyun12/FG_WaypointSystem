@@ -74,11 +74,10 @@ public class WaypointEditor : Editor
 		if (so.ApplyModifiedProperties())
 		{ Repaint(); }
 
-
 		bool holdingAlt = (Event.current.modifiers & EventModifiers.Alt) != 0;
-		if (Event.current.type == EventType.MouseDown && holdingAlt)
+		bool IsNearLine = lowestDist < 30f;
+		if (Event.current.type == EventType.MouseDown && holdingAlt && IsNearLine)
 		{
-
 			int nextIndex = (int)Mathf.Repeat(currentIndex + 1, propWaypoints.arraySize);
 			Vector3 propPos0 = propWaypoints.GetArrayElementAtIndex(currentIndex).FindPropertyRelative("position").vector3Value;
 			Vector3 propPos1 = propWaypoints.GetArrayElementAtIndex(nextIndex).FindPropertyRelative("position").vector3Value;
@@ -99,34 +98,14 @@ public class WaypointEditor : Editor
 			float percentage = lengthBetweenPoints * lengthPercentage;
 
 			int closerIndex = distToExtendVector0 < distToExtendVector1 ? currentIndex : nextIndex;
-			Debug.Log("Mouse Point is closer to " + closerIndex);
+			//Debug.Log("Mouse Point is closer to " + closerIndex);
 
 			Vector3 CloserPos = propWaypoints.GetArrayElementAtIndex(closerIndex).FindPropertyRelative("position").vector3Value;
-			if (closerIndex == currentIndex)
-			{
-				Vector3 targetPosition = CloserPos + dir0To1 * percentage;
-				AddItem(currentIndex, targetPosition);
-			}
-			else
-			{
-				Vector3 targetPosition = CloserPos + dir1To0 * percentage;
-				AddItem(currentIndex, targetPosition);
-			}
+			Vector3 targetPosition = CloserPos +
+					(closerIndex == currentIndex ? dir0To1 : dir1To0) * percentage;
 
+			AddItem(currentIndex, targetPosition);
 
-			Debug.Log(distToExtendVector0);
-			Debug.Log(distToExtendVector1);
-			Debug.Log("-----------------");
-
-
-
-
-
-
-
-
-
-			//AddItem(closestIndex);
 			Repaint();
 			Event.current.Use(); // consume the event, don't let it fall through
 		}
