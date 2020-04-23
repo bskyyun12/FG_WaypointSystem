@@ -55,7 +55,7 @@ public class WaypointEditor : Editor
 	{
 		so.Update();
 		float lowestDist = 1000f;
-		int closestIndex = 0;
+		int currentIndex = 0;
 		for (int i = 0; i < propWaypoints.arraySize; i++)
 		{
 			DrawMoveHandleOnWaypoint(i);
@@ -68,7 +68,7 @@ public class WaypointEditor : Editor
 			if (lowestDist > dist)
 			{
 				lowestDist = dist;
-				closestIndex = i;
+				currentIndex = i;
 			}
 		}
 		if (so.ApplyModifiedProperties())
@@ -78,12 +78,60 @@ public class WaypointEditor : Editor
 		bool holdingAlt = (Event.current.modifiers & EventModifiers.Alt) != 0;
 		if (Event.current.type == EventType.MouseDown && holdingAlt)
 		{
-			AddItem(closestIndex);
+
+			int nextIndex = (int)Mathf.Repeat(currentIndex + 1, propWaypoints.arraySize);
+			Vector3 propPos0 = propWaypoints.GetArrayElementAtIndex(currentIndex).FindPropertyRelative("position").vector3Value;
+			Vector3 propPos1 = propWaypoints.GetArrayElementAtIndex(nextIndex).FindPropertyRelative("position").vector3Value;
+
+			Vector3 dir0To1 = (propPos1 - propPos0).normalized;
+			Vector3 dir1To0 = (propPos0 - propPos1).normalized;
+
+			float distToExtendVector0 = HandleUtility.DistanceToLine(propPos0, propPos0 + dir1To0);
+			float distToExtendVector1 = HandleUtility.DistanceToLine(propPos1, propPos1 + dir0To1);
+
+			float sum = distToExtendVector0 + distToExtendVector1;
+			float closerDistToExtendVector = distToExtendVector0 < distToExtendVector1 ? distToExtendVector0 : distToExtendVector1;
+
+			// Calulate percentage
+			float lengthPercentage = closerDistToExtendVector / sum;
+			Vector3 worldDirBetweenPoints = propPos1 - propPos0;
+			float lengthBetweenPoints = worldDirBetweenPoints.magnitude;
+			float percentage = lengthBetweenPoints * lengthPercentage;
+
+			int closerIndex = distToExtendVector0 < distToExtendVector1 ? currentIndex : nextIndex;
+			Debug.Log("Mouse Point is closer to " + closerIndex);
+
+			Vector3 CloserPos = propWaypoints.GetArrayElementAtIndex(closerIndex).FindPropertyRelative("position").vector3Value;
+			if (closerIndex == currentIndex)
+			{
+				Vector3 targetPosition = CloserPos + dir0To1 * percentage;
+				AddItem(currentIndex, targetPosition);
+			}
+			else
+			{
+				Vector3 targetPosition = CloserPos + dir1To0 * percentage;
+				AddItem(currentIndex, targetPosition);
+			}
+
+
+			Debug.Log(distToExtendVector0);
+			Debug.Log(distToExtendVector1);
+			Debug.Log("-----------------");
+
+
+
+
+
+
+
+
+
+			//AddItem(closestIndex);
 			Repaint();
 			Event.current.Use(); // consume the event, don't let it fall through
 		}
 
-		DrawButtons(closestIndex);
+		//DrawButtons(currentIndex);
 		DrawLinesBetweenPoints();
 	}
 
