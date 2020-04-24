@@ -73,7 +73,7 @@ public class WaypointEditor : Editor
 		}
 		if (so.ApplyModifiedProperties())
 		{ Repaint(); }
-
+		
 		bool holdingAlt = (Event.current.modifiers & EventModifiers.Alt) != 0;
 		bool IsNearLine = lowestDist < 30f;
 		if (Event.current.type == EventType.MouseDown && holdingAlt && IsNearLine)
@@ -82,27 +82,7 @@ public class WaypointEditor : Editor
 			Vector3 propPos0 = propWaypoints.GetArrayElementAtIndex(currentIndex).FindPropertyRelative("position").vector3Value;
 			Vector3 propPos1 = propWaypoints.GetArrayElementAtIndex(nextIndex).FindPropertyRelative("position").vector3Value;
 
-			Vector3 dir0To1 = (propPos1 - propPos0).normalized;
-			Vector3 dir1To0 = (propPos0 - propPos1).normalized;
-
-			float distToExtendVector0 = HandleUtility.DistanceToLine(propPos0, propPos0 + dir1To0);
-			float distToExtendVector1 = HandleUtility.DistanceToLine(propPos1, propPos1 + dir0To1);
-
-			float sum = distToExtendVector0 + distToExtendVector1;
-			float closerDistToExtendVector = distToExtendVector0 < distToExtendVector1 ? distToExtendVector0 : distToExtendVector1;
-
-			// Calulate percentage
-			float lengthPercentage = closerDistToExtendVector / sum;
-			Vector3 worldDirBetweenPoints = propPos1 - propPos0;
-			float lengthBetweenPoints = worldDirBetweenPoints.magnitude;
-			float percentage = lengthBetweenPoints * lengthPercentage;
-
-			int closerIndex = distToExtendVector0 < distToExtendVector1 ? currentIndex : nextIndex;
-			//Debug.Log("Mouse Point is closer to " + closerIndex);
-
-			Vector3 CloserPos = propWaypoints.GetArrayElementAtIndex(closerIndex).FindPropertyRelative("position").vector3Value;
-			Vector3 targetPosition = CloserPos +
-					(closerIndex == currentIndex ? dir0To1 : dir1To0) * percentage;
+			Vector3 targetPosition = GetClosestPointOnLineSegment(propPos0, propPos1);
 
 			AddItem(currentIndex, targetPosition);
 
@@ -110,8 +90,24 @@ public class WaypointEditor : Editor
 			Event.current.Use(); // consume the event, don't let it fall through
 		}
 
-		//DrawButtons(currentIndex);
 		DrawLinesBetweenPoints();
+	}
+
+	Vector3 GetClosestPointOnLineSegment(Vector3 a, Vector3 b)
+	{
+		Vector3 dir_ab = (b - a).normalized;
+		Vector3 dir_ba = (a - b).normalized;
+
+		Vector3 extendLine_a = a + dir_ba;
+		Vector3 extendLine_b = b + dir_ab;
+
+		float distTo_a = HandleUtility.DistanceToLine(a, extendLine_a);
+		float distTo_b = HandleUtility.DistanceToLine(b, extendLine_b);
+		
+		float sum = distTo_a + distTo_b;
+		float lengthPercentage = distTo_a / sum;
+		
+		return Vector3.Lerp(a, b, lengthPercentage);
 	}
 
 	private void DrawMoveHandleOnWaypoint(int currentIndex)
